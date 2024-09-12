@@ -19,21 +19,8 @@ export class Employee {
   })
   id: string;
 
-  @Exclude()
-  @Column({ name: 'employee_status_id' })
-  employeeStatusId: string;
-
-  @Exclude()
-  @ManyToOne(() => EmployeeStatus, (employeeStatus) => employeeStatus.employees, {
-    nullable: false,
-    cascade: true,
-    onDelete: 'CASCADE',
-  })
-  @JoinColumn({
-    name: 'employee_status_id',
-    foreignKeyConstraintName: 'FK_employees_employee_status',
-  })
-  employeeStatus: EmployeeStatus;
+  @Column({ type: 'varchar', length: 100 })
+  status: string;
 
   @Column({ type: 'varchar', length: 100 })
   name: string;

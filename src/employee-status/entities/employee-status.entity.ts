@@ -1,4 +1,3 @@
-import { Employee } from 'src/employee/entities/employee.entity';
 import {
   Column,
   CreateDateColumn,
@@ -11,10 +10,10 @@ import {
 
 @Entity('employee_status')
 export class EmployeeStatus {
-  @PrimaryGeneratedColumn('uuid', {
+  @PrimaryGeneratedColumn({
     primaryKeyConstraintName: 'PK_employee_status',
   })
-  id: string;
+  id: number;
 
   @Column({ type: 'varchar', length: 100 })
   name: string;
@@ -30,9 +29,4 @@ export class EmployeeStatus {
 
   @DeleteDateColumn({ name: 'deleted_at' })
   deletedAt: Date;
-
-  @OneToMany(() => Employee, (employee: Employee) => employee.employeeStatus, {
-    nullable: true,
-  })
-  employees: Employee[];
 }

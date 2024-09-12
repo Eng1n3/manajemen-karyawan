@@ -10,8 +10,8 @@ export class UpdateEmployeeStatusDto {
   @IsString()
   description?: string;
 
-  @IsAtLeastOneFieldPresent(Object.assign(this), {
-    message: `At least one of the fields (${Object.assign(this).join(', ')}) must be provided`,
+  @IsAtLeastOneFieldPresent(['name', 'description'], {
+    message: `At least one of the fields (${['name', 'description'].join(', ')}) must be provided`,
   })
   checkFields: boolean;
 }

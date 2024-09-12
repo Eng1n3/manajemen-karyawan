@@ -3,11 +3,11 @@ import { Seeder } from '@jorgebodega/typeorm-seeding';
 import { SeederEntity } from 'src/seeder/entities/seeder.entity';
 import { EmployeeStatus } from 'src/employee-status/entities/employee-status.entity';
 
-export default class EmployeeStatus1726099481800 extends Seeder {
+export default class EmployeeStatus1726112811821 extends Seeder {
   public async run(datasource: DataSource): Promise<void> {
     const dataSeeder = await datasource
       .getRepository(SeederEntity)
-      .find({ where: { name: EmployeeStatus1726099481800.name } });
+      .find({ where: { name: EmployeeStatus1726112811821.name } });
     if (!dataSeeder.length) {
       const userRole: EmployeeStatus[] = datasource
         .getRepository(EmployeeStatus)
@@ -31,8 +31,8 @@ export default class EmployeeStatus1726099481800 extends Seeder {
         .create(userRole);
       await datasource.createEntityManager().save<EmployeeStatus>(value);
       await datasource.getRepository(SeederEntity).save({
-        name: EmployeeStatus1726099481800.name,
-        timestamp: 1726099481800,
+        name: EmployeeStatus1726112811821.name,
+        timestamp: 1726112811821,
       });
     }
   }

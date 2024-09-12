@@ -1,0 +1,61 @@
+###
+DELETE http://localhost:3000/employee HTTP/1.1
+Content-Type: application/json
+
+{
+    "id": ["e4aa11f3-c9c4-4d81-8121-9e6933176ded", "e491c8eb-c8f7-4e5c-8fb8-bce23584d66a"]
+}
+
+###
+PATCH http://localhost:3000/employee/eb5e0a1a-417c-468d-a52a-8ba5286b14a2
+Content-Type: application/json
+
+{
+    "status": "tetap"
+}
+
+###
+GET http://localhost:3000/employee?direction=desc&order_by=status&page=1&take=10 HTTP/1.1
+
+###
+POST http://localhost:3000/employee HTTP/1.1
+Content-Type: application/json
+
+{
+    "employeeStatusId": "0303c879-cd5b-4e39-bbd7-a06b63a1fec9",
+    "name": "Perdana",
+    "employeeNumber": 50469163,
+    "position": "Backend Developer",
+    "department": "Tech",
+    "entryDate": "2024-10-12",
+    "status": "kontrak",
+    "photo": "https://i.pravatar.cc/150?u=766f63e0-7304-45ab-8105-a68b1e904d02"
+}
+
+###
+DELETE http://localhost:3000/employee-status HTTP/1.1
+Content-Type: application/json
+
+{
+    "id": ["88dbe438-5387-4cf5-8d84-37f1b8874fcd"]
+}
+
+###
+PATCH http://localhost:3000/employee-status/1327c4e5-afb3-4895-a0db-c14329b737b1 HTTP/1.1
+Content-Type: application/json
+
+{
+    "name": "ganti"
+}
+
+###
+GET http://localhost:3000/employee-status?direction=desc&page=1&take=10 HTTP/1.1
+
+###
+POST http://localhost:3000/employee-status HTTP/1.1
+Content-Type: application/json
+
+{
+    "name": "Kontrak",
+    "description": "status buat"
+}

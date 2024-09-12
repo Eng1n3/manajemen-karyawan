@@ -38,11 +38,6 @@ export class File {
   size: number;
 
   @Column({
-    name: 'checksum',
-  })
-  checksum: string;
-
-  @Column({
     name: 'is_main',
     type: 'boolean',
   })

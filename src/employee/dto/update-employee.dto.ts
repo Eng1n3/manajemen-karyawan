@@ -6,17 +6,17 @@ import {
   IsString,
   IsUrl,
   IsUUID,
+  ValidateIf,
 } from 'class-validator';
 import { IsAtLeastOneFieldPresent } from 'src/common/decorators/least-one-field-present.decorator';
 
-export class UpdateProductDto {
+export class UpdateEmployeeDto {
   @IsOptional()
   @IsString()
-  @IsUUID()
-  employeeStatusId: string;
-
-  @IsOptional()
-  @IsString()
+  @ValidateIf(({ value }) => (value ? true : false))
+  @Transform(({ value }) => {
+    return value.toLowerCase();
+  })
   name: string;
 
   @IsOptional()
@@ -25,10 +25,18 @@ export class UpdateProductDto {
 
   @IsOptional()
   @IsString()
+  @ValidateIf(({ value }) => (value ? true : false))
+  @Transform(({ value }) => {
+    return value.toLowerCase();
+  })
   position: string;
 
   @IsOptional()
   @IsString()
+  @ValidateIf(({ value }) => (value ? true : false))
+  @Transform(({ value }) => {
+    return value.toLowerCase();
+  })
   department: string;
 
   @IsOptional()
@@ -40,8 +48,35 @@ export class UpdateProductDto {
   @IsUrl()
   photo: string;
 
-  @IsAtLeastOneFieldPresent(['name'], {
-    message: `At least one of the fields (${Object.assign(this).join(', ')}) must be provided`,
+  @IsOptional()
+  @IsString()
+  @ValidateIf(({ value }) => (value ? true : false))
+  @Transform(({ value }) => {
+    return value.toLowerCase();
   })
+  status: string;
+
+  @IsAtLeastOneFieldPresent(
+    [
+      'status',
+      'name',
+      'employeeNumber',
+      'position',
+      'department',
+      'entryDate',
+      'photo',
+    ],
+    {
+      message: `At least one of the fields (${[
+        'status',
+        'name',
+        'employeeNumber',
+        'position',
+        'department',
+        'entryDate',
+        'photo',
+      ].join(', ')}) must be provided`,
+    },
+  )
   checkFields: boolean;
 }

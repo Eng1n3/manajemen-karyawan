@@ -3,6 +3,4 @@ export interface CreateFile {
   filename: string;
   originalFilename: string;
   mime: string;
-  size: number;
-  checksum: string;
 }

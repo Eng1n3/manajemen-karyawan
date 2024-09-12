@@ -10,6 +10,7 @@ import {
   FindOptionsOrder,
   FindOptionsWhere,
   ILike,
+  In,
   Not,
   Repository,
 } from 'typeorm';
@@ -18,6 +19,7 @@ import { PageParametersDto } from 'src/common/dto/page-parameters.dto';
 import { PageMetaDto } from 'src/common/dto/page-meta.dto';
 import { PageDto } from 'src/common/dto/page.dto';
 import { CreateEmployeeStatusDto } from './dto/create-employee-status.dto';
+import { DeleteEmployeeStatusDto } from './dto/delete-employee-status.dto';
 
 @Injectable()
 export class EmployeeStatusService {
@@ -26,16 +28,16 @@ export class EmployeeStatusService {
     private employeeStatusRepo: Repository<EmployeeStatus>,
   ) {}
 
-  async deleteEmployeeStatus(id: string) {
-    const isExist = await this.employeeStatusRepo.findOneBy({
-      id,
+  async deleteEmployeeStatus(deleteEmployeeStatusDto: DeleteEmployeeStatusDto) {
+    const isExist = await this.employeeStatusRepo.findBy({
+      id: In(deleteEmployeeStatusDto.id),
     });
-    if (!isExist) throw new NotFoundException('Data not found');
-    await this.employeeStatusRepo.softDelete(id);
+    if (!isExist.length) throw new NotFoundException('Data not found');
+    await this.employeeStatusRepo.softDelete(deleteEmployeeStatusDto.id);
   }
 
   async updateEmployeeStatus(
-    updateEmployeeStatusDto: UpdateEmployeeStatusDto & { id: string },
+    updateEmployeeStatusDto: UpdateEmployeeStatusDto & { id: number },
   ) {
     const isExist = await this.employeeStatusRepo.findOneBy({
       id: updateEmployeeStatusDto.id,
@@ -54,7 +56,7 @@ export class EmployeeStatusService {
     await this.employeeStatusRepo.save(employeeStatus);
   }
 
-  async findOneEmployeeStatus(id: string) {
+  async findOneEmployeeStatus(id: number) {
     const role = await this.employeeStatusRepo.findOneBy({ id });
     return role;
   }
