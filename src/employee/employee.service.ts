@@ -27,7 +27,13 @@ import { plainToInstance } from 'class-transformer';
 import { File } from 'src/file/entities/file.entity';
 import { SaveToFileDto } from './dto/save-to-employee.dto';
 import * as PDFDocument from 'pdfkit';
-import { createWriteStream, writeFileSync } from 'fs';
+import {
+  createWriteStream,
+  stat,
+  statSync,
+  writeFile,
+  writeFileSync,
+} from 'fs';
 import {
   createFileFunction,
   getSize,
@@ -68,9 +74,9 @@ export class EmployeeService {
     const file = await this.fileRepo.findOneBy({ id });
     if (!file) throw new BadRequestException('Data file tidak ada');
     const { originalName, path, mimeType } = file;
-    let contentType: string
-    if (mimeType === 'pdf') contentType = 'application/pdf'
-    contentType = 'text/csv'
+    let contentType: string;
+    if (mimeType === 'pdf') contentType = 'application/pdf';
+    contentType = 'text/csv';
     return { originalName, path, mimeType, contentType };
   }
 
@@ -195,42 +201,134 @@ export class EmployeeService {
     await this.employeeRepo.save(employee);
   }
 
-  async savePdfToFile(data: Employee[], filePath: string) {
+  // async savePdfToFile(data: Employee[], filePath: string) {
+  //   const doc = new PDFDocument();
+
+  //   // Tentukan lokasi file yang akan disimpan
+
+  //   // Gunakan fs untuk membuat write stream
+  //   const writeStream = createWriteStream(filePath);
+
+  //   // Piping PDF stream ke write stream (file lokal)
+  //   doc.pipe(writeStream);
+
+  //   // Tambahkan konten ke PDF
+  //   doc.fontSize(25).text('Data Export', { align: 'center' });
+  //   doc.moveDown();
+
+  //   data.forEach((row, index) => {
+  //     doc.fontSize(12).text(`Row ${index + 1}:`);
+  //     doc.text(`nama: ${row.name}`);
+  //     doc.text(`nomor: ${row.employeeNumber}`);
+  //     doc.text(`jabatan: ${row.position}`);
+  //     doc.text(`departmen: ${row.department}`);
+  //     doc.text(`tanggal_masuk: ${row.entryDate}`);
+  //     doc.text(`foto: ${row.photo}`);
+  //     doc.text(`status: ${row.status}`);
+  //     doc.moveDown();
+  //   });
+
+  //   // Selesaikan dokumen
+  //   doc.end();
+
+  //   // Log informasi bahwa file berhasil disimpan
+  //   writeStream.on('finish', () => {
+  //     console.log('PDF file saved locally at:', filePath);
+  //   });
+
+  //   return new Promise((resolve) => {
+  //     writeStream.on('end', async () => {
+  //       resolve(stats);
+  //     });
+  //   });
+  // }
+
+  // async function createPDF(filePath: string) {
+  //   const doc = new PDFDocument();
+  //   const chunks: Buffer[] = [];
+
+  //   doc.text('Hello, PDF world!');
+
+  //   // Buffer the output
+  //   doc.on('data', (chunk) => chunks.push(chunk));
+  //   doc.on('end', async () => {
+  //     const result = Buffer.concat(chunks);
+  //     const stats = getSize(filePath); // Simpan file dan kembalikan stats
+  //     console.log('Returned stats:', stats);
+  //   });
+
+  //   doc.end();
+
+  //   // Mengembalikan stat di akhir
+  //   return new Promise((resolve) => {
+  //     doc.on('end', async () => {
+  //       const result = Buffer.concat(chunks);
+  //       const stats = getSize(filePath);
+  //       resolve(stats);
+  //     });
+  //   });
+  // }
+
+  createProductTablePDF(data: Employee[], filePath: string) {
     const doc = new PDFDocument();
-
-    // Tentukan lokasi file yang akan disimpan
-
-    // Gunakan fs untuk membuat write stream
     const writeStream = createWriteStream(filePath);
 
-    // Piping PDF stream ke write stream (file lokal)
     doc.pipe(writeStream);
 
-    // Tambahkan konten ke PDF
-    doc.fontSize(25).text('Data Export', { align: 'center' });
+    // Header Judul
+    doc.fontSize(18).text('Product List', { align: 'center' });
     doc.moveDown();
 
-    data.forEach((row, index) => {
-      doc.fontSize(12).text(`Row ${index + 1}:`);
-      doc.text(`nama: ${row.name}`);
-      doc.text(`nomor: ${row.employeeNumber}`);
-      doc.text(`jabatan: ${row.position}`);
-      doc.text(`departmen: ${row.department}`);
-      doc.text(`tanggal_masuk: ${row.entryDate}`);
-      doc.text(`foto: ${row.photo}`);
-      doc.text(`status: ${row.status}`);
-      doc.moveDown();
+    // Header Tabel
+    doc.fontSize(12);
+    const tableTop = 100;
+    const rowHeight = 20;
+
+    const headers = [
+      'nama',
+      'nomor',
+      'jabatan',
+      'departmen',
+      'tanggal_masuk',
+      'photo',
+      'status',
+    ];
+    let currentY = tableTop;
+
+    // Tulis Header Kolom
+    headers.forEach((header, i) => {
+      doc.text(header, 50 + i * 80, currentY);
     });
 
-    // Selesaikan dokumen
+    // Garis bawah header
+    doc
+      .moveTo(50, currentY + 15)
+      .lineTo(550, currentY + 15)
+      .stroke();
+    currentY += rowHeight;
+
+    // Isi Tabel
+    data.forEach((row) => {
+      doc.text(row.name.toString(), 50, currentY);
+      doc.text(row.employeeNumber.toString(), 130, currentY);
+      doc.text(row.position.toString(), 210, currentY);
+      doc.text(row.department.toString(), 290, currentY);
+      doc.text(row.entryDate.toString(), 370, currentY);
+      doc.text(row.photo.toString(), 450, currentY);
+      doc.text(row.status.toString(), 530, currentY);
+
+      currentY += rowHeight;
+    });
+
+    // Garis bawah tabel
+    doc.moveTo(50, currentY).lineTo(550, currentY).stroke();
+
+    // Akhiri dan simpan dokumen
     doc.end();
 
-    // Log informasi bahwa file berhasil disimpan
     writeStream.on('finish', () => {
-      console.log('PDF file saved locally at:', filePath);
+      console.log('PDF created successfully.');
     });
-
-    return filePath;
   }
 
   async saveCsvToFile(data: Employee[], filePath: string) {
@@ -261,7 +359,9 @@ export class EmployeeService {
     writeFileSync(filePath, result, 'utf8');
     console.log('CSV file saved locally at:', filePath);
 
-    return filePath;
+    const stats = statSync(filePath);
+    const fileSizeInBytes = stats.size;
+    return fileSizeInBytes;
   }
 
   async saveToFile(saveToFileDto: SaveToFileDto) {
@@ -271,13 +371,16 @@ export class EmployeeService {
       saveToFileDto.fileName,
       'employee-files',
     );
+    let size: number;
     if (saveToFileDto.saveTo === SaveTo.PDF) {
-      await this.savePdfToFile(data, fileValue.path);
+      this.createProductTablePDF(data, fileValue.path);
+      // size = await this.savePdfToFile(data, fileValue.path);
       // size = getSize(filePath);
+      size = 0;
     } else {
-      await this.saveCsvToFile(data, fileValue.path);
+      size = await this.saveCsvToFile(data, fileValue.path);
     }
-    const size = getSize(fileValue.path);
+    console.log(size);
     const file = this.fileRepo.create({
       isMain: true,
       mimeType: fileValue.mime,

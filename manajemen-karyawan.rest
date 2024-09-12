@@ -1,5 +1,5 @@
 ###
-GET http://localhost:3000/employee/download/25873856-8253-4383-be46-935b5d603351
+GET http://localhost:3000/employee/download/5dce95f3-3500-44d3-8e9a-15094dd65316
 
 ###
 GET http://localhost:3000/employee/files
@@ -9,7 +9,7 @@ POST http://localhost:3000/employee/save-to HTTP/1.1
 Content-Type: application/json
 
 {
-    "saveTo": "csv",
+    "saveTo": "pdf",
     "fileName": "data_karyawan"
 
 }
