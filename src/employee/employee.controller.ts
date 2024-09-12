@@ -13,6 +13,8 @@ import {
   ParseArrayPipe,
   UseInterceptors,
   ClassSerializerInterceptor,
+  StreamableFile,
+  Res,
 } from '@nestjs/common';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { PageParametersDto } from 'src/common/dto/page-parameters.dto';
@@ -25,6 +27,10 @@ import { DeleteEmployeeDto } from './dto/delete-employee.dto';
 import { ImportEmployeeDto } from './dto/import-employee.dto';
 import { FormDataRequest } from 'nestjs-form-data';
 import { SaveToFileDto } from './dto/save-to-employee.dto';
+import { FileOrderBy } from 'src/file/enum/file-order-by.enum';
+import { createReadStream } from 'fs';
+import { join } from 'path';
+import { Response } from 'express';
 
 @Controller('employee')
 export class EmployeeController {
@@ -56,6 +62,41 @@ export class EmployeeController {
       statusCode: HttpStatus.OK,
       message: 'Success updated status',
     };
+  }
+
+  @Get('files')
+  @HttpCode(HttpStatus.OK)
+  @ApiQuery({ name: 'order_by', enum: FileOrderBy })
+  @UseInterceptors(ClassSerializerInterceptor)
+  async findAllFiles(
+    @Query() pageParametersDto: PageParametersDto,
+    @Query('order_by', new OrderByValidationPipe(FileOrderBy))
+    orderBy?: string,
+  ) {
+    return await this.employeeService.findAllFiles({
+      skip: pageParametersDto.skip,
+      ...pageParametersDto,
+      orderBy,
+    });
+  }
+
+  @Get('download/:id')
+  @HttpCode(HttpStatus.OK)
+  @ApiQuery({ name: 'order_by', enum: FileOrderBy })
+  @UseInterceptors(ClassSerializerInterceptor)
+  async download(
+    @Res({ passthrough: true }) res: Response,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<StreamableFile> {
+    const { originalName, path, contentType, mimeType } =
+      await this.employeeService.download(id);
+    const file = createReadStream(join(process.cwd(), path));
+    file.pipe(res);
+    res.set({
+      'Content-Type': contentType,
+      'Content-Disposition': `attachment; filename="${originalName}.${mimeType}"`,
+    });
+    return new StreamableFile(file);
   }
 
   @Get(':id')

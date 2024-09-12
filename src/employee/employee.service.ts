@@ -24,13 +24,17 @@ import { Readable } from 'stream';
 import * as csv from 'csv-parser';
 import { EmployeeImportCsv } from './entities/employee-import-csv.entity';
 import { plainToInstance } from 'class-transformer';
-import { validateArray } from 'src/common/functions/validate-array.function';
 import { File } from 'src/file/entities/file.entity';
 import { SaveToFileDto } from './dto/save-to-employee.dto';
 import * as PDFDocument from 'pdfkit';
-import { join } from 'path';
-import { createWriteStream } from 'fs';
-import { createFileFunction } from 'src/common/functions/create-file.function';
+import { createWriteStream, writeFileSync } from 'fs';
+import {
+  createFileFunction,
+  getSize,
+} from 'src/common/functions/create-file.function';
+import { SaveTo } from './enum/save-to.enum';
+import { createObjectCsvStringifier } from 'csv-writer';
+import { capitalizeWords } from 'src/common/functions/capitalize-word.function';
 
 @Injectable()
 export class EmployeeService {
@@ -60,6 +64,16 @@ export class EmployeeService {
     });
   }
 
+  async download(id: string) {
+    const file = await this.fileRepo.findOneBy({ id });
+    if (!file) throw new BadRequestException('Data file tidak ada');
+    const { originalName, path, mimeType } = file;
+    let contentType: string
+    if (mimeType === 'pdf') contentType = 'application/pdf'
+    contentType = 'text/csv'
+    return { originalName, path, mimeType, contentType };
+  }
+
   async deleteEmployee(deleteEmployeeDto: DeleteEmployeeDto) {
     const isExist = await this.employeeRepo.findBy({
       id: In(deleteEmployeeDto.id),
@@ -73,6 +87,48 @@ export class EmployeeService {
       where: { id },
     });
     return role;
+  }
+
+  async findAllFiles(
+    pageParametersDto: PageParametersDto & { orderBy: string },
+  ) {
+    const findOptionsWhere: FindOptionsWhere<File> | FindOptionsWhere<File>[] =
+      pageParametersDto.search
+        ? [
+            { originalName: ILike(`%${pageParametersDto.search}%`) },
+            {
+              mimeType: ILike(`%${pageParametersDto.search}%`),
+            },
+          ]
+        : {};
+
+    const order: FindOptionsOrder<File> | null = pageParametersDto.orderBy
+      ? {
+          [pageParametersDto.orderBy]: {
+            direction: pageParametersDto.direction
+              ? pageParametersDto.direction
+              : null,
+          },
+        }
+      : null;
+
+    const files = await this.fileRepo.find({
+      take: pageParametersDto.take,
+      skip: pageParametersDto.skip,
+      where: findOptionsWhere,
+      order,
+    });
+
+    const itemCount = await this.fileRepo.count();
+
+    const pageMetaDto = new PageMetaDto({ itemCount, pageParametersDto });
+
+    return new PageDto(
+      HttpStatus.OK,
+      'Success get employee',
+      files,
+      pageMetaDto,
+    );
   }
 
   async findAllEmployee(
@@ -139,7 +195,7 @@ export class EmployeeService {
     await this.employeeRepo.save(employee);
   }
 
-  async savePdfToFile(data: any[], filePath: string): Promise<void> {
+  async savePdfToFile(data: Employee[], filePath: string) {
     const doc = new PDFDocument();
 
     // Tentukan lokasi file yang akan disimpan
@@ -156,9 +212,13 @@ export class EmployeeService {
 
     data.forEach((row, index) => {
       doc.fontSize(12).text(`Row ${index + 1}:`);
-      doc.text(`Name: ${row.name}`);
-      doc.text(`Age: ${row.age}`);
-      doc.text(`City: ${row.city}`);
+      doc.text(`nama: ${row.name}`);
+      doc.text(`nomor: ${row.employeeNumber}`);
+      doc.text(`jabatan: ${row.position}`);
+      doc.text(`departmen: ${row.department}`);
+      doc.text(`tanggal_masuk: ${row.entryDate}`);
+      doc.text(`foto: ${row.photo}`);
+      doc.text(`status: ${row.status}`);
       doc.moveDown();
     });
 
@@ -169,12 +229,63 @@ export class EmployeeService {
     writeStream.on('finish', () => {
       console.log('PDF file saved locally at:', filePath);
     });
+
+    return filePath;
+  }
+
+  async saveCsvToFile(data: Employee[], filePath: string) {
+    const dataUpperCase = data.map((value: EmployeeImportCsv) => ({
+      ...value,
+      name: capitalizeWords(value.name),
+      position: capitalizeWords(value.position),
+      department: capitalizeWords(value.department),
+      status: value.status.toLowerCase(),
+    }));
+    const csvStringifier = createObjectCsvStringifier({
+      header: [
+        { id: 'name', title: 'nama' },
+        { id: 'employeeNumber', title: 'nomor' },
+        { id: 'position', title: 'jabatan' },
+        { id: 'department', title: 'departmen' },
+        { id: 'entryDate', title: 'tanggal_masuk' },
+        { id: 'photo', title: 'foto' },
+        { id: 'status', title: 'status' },
+      ],
+    });
+
+    const header = csvStringifier.getHeaderString();
+    const csvContent = csvStringifier.stringifyRecords(dataUpperCase);
+    const result = header + csvContent;
+
+    // Gunakan fs untuk menulis file
+    writeFileSync(filePath, result, 'utf8');
+    console.log('CSV file saved locally at:', filePath);
+
+    return filePath;
   }
 
   async saveToFile(saveToFileDto: SaveToFileDto) {
-    const saveTo = saveToFileDto.saveTo;
-    const data = this.employeeRepo.find();
-    const fileValue = await createFileFunction(data, saveTo, 'product-images');
+    const data = await this.employeeRepo.find();
+    const fileValue = createFileFunction(
+      saveToFileDto.saveTo,
+      saveToFileDto.fileName,
+      'employee-files',
+    );
+    if (saveToFileDto.saveTo === SaveTo.PDF) {
+      await this.savePdfToFile(data, fileValue.path);
+      // size = getSize(filePath);
+    } else {
+      await this.saveCsvToFile(data, fileValue.path);
+    }
+    const size = getSize(fileValue.path);
+    const file = this.fileRepo.create({
+      isMain: true,
+      mimeType: fileValue.mime,
+      originalName: fileValue.originalFilename,
+      path: fileValue.path,
+      size,
+    });
+    await this.fileRepo.save(file);
   }
 
   async createEmployee(createEmployeeDto: CreateEmployeeDto) {
@@ -200,13 +311,12 @@ export class EmployeeService {
       EmployeeImportCsv,
       csvStream,
     ) as unknown as EmployeeImportCsv[];
-    const toLowerCaseEmployee = employee.map((value: EmployeeImportCsv) => ({
-      ...value,
-      name: value.name.toLowerCase(),
-      position: value.position.toLowerCase(),
-      department: value.department.toLowerCase(),
-      status: value.status.toLowerCase(),
-    }));
+    const toLowerCaseEmployee: EmployeeImportCsv[] = employee.map(
+      (value: EmployeeImportCsv) => ({
+        ...value,
+        status: value.status.toLowerCase(),
+      }),
+    );
     const employeeCreate = this.employeeRepo.create(toLowerCaseEmployee);
     await this.employeeRepo.save(employeeCreate);
   }

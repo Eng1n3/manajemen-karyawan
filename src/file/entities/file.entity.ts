@@ -1,3 +1,5 @@
+import { ConfigService } from '@nestjs/config';
+import { Exclude, Expose } from 'class-transformer';
 import {
   Column,
   CreateDateColumn,
@@ -7,6 +9,8 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
+const configService = new ConfigService()
+
 @Entity({ name: 'files' })
 export class File {
   @PrimaryGeneratedColumn('uuid', {
@@ -14,6 +18,7 @@ export class File {
   })
   id: string;
 
+  @Exclude()
   @Column({
     name: 'path',
   })
@@ -51,4 +56,13 @@ export class File {
 
   @DeleteDateColumn({ name: 'deleted_at' })
   deletedAt: Date;
+
+  @Expose({ name: 'path' })
+  get imagePtah(): string {
+    return `${configService.get('BASE_URL_APP')}/${this.path}`;
+  }
+
+  constructor(partial: Partial<File>) {
+    Object.assign(this, partial);
+  }
 }

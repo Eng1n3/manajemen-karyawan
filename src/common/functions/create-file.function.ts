@@ -8,6 +8,7 @@ import * as mime from 'mime-types';
 import { createHash } from 'crypto';
 import * as fs from 'fs';
 import { ConfigService } from '@nestjs/config';
+import { join } from 'path';
 
 const configService = new ConfigService();
 
@@ -49,13 +50,12 @@ function deleteFile(path: string): void {
   if (existsSync(path)) unlinkSync(path);
 }
 
-export async function createFileFunction(
-  data: any,
+export function createFileFunction(
   saveTo: string,
+  originalFilename: string,
   uploadPath?: string,
-): Promise<CreateFile | null> {
+): CreateFile {
   const uploadPathWithPublic = `uploads/${uploadPath}`;
-  if (!data) return null;
   const timestamp = dayjs().valueOf();
   const newFileName = `${timestamp}${generate({
     length: 8,
@@ -78,7 +78,7 @@ export async function createFileFunction(
   return {
     path: `${uploadPathWithPublic}/${filename}`,
     filename,
-    originalFilename: filename,
+    originalFilename,
     mime: saveTo,
   };
 }

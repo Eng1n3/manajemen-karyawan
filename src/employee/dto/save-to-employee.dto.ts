@@ -8,15 +8,15 @@ import {
   IsString,
   IsUrl,
 } from 'class-validator';
-
-enum SaveTo {
-  PDF = 'pdf',
-  CSV = 'csv',
-}
+import { SaveTo } from '../enum/save-to.enum';
 
 export class SaveToFileDto {
   @IsNotEmpty()
   @IsString()
   @IsEnum(SaveTo)
   saveTo: string;
+
+  @IsNotEmpty()
+  @IsString()
+  fileName: string;
 }
